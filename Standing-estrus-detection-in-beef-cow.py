@@ -3,6 +3,11 @@ import cv2
 import math
 import numpy as np
 from time import time
+import parinya
+from parinya import LINE
+
+mytoken = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' #Your LINE Token
+line = LINE(mytoken)
 
 # Load video
 cap = cv2.VideoCapture("dataset/cowip (1).mp4")  # For video
@@ -10,6 +15,8 @@ cap = cv2.VideoCapture("dataset/cowip (1).mp4")  # For video
 # Load Model
 model = YOLO("Mounting_yolov8n.pt")
 classNames = ["Mounting"] #or Standing
+
+count =0
 
 # Detecting objects and showing informations on the screen 
 while True:
@@ -33,19 +40,35 @@ while True:
                 conf = math.ceil((box.conf[0] * 100))
             # Class Name
                 cls = int(box.cls[0])
-                cv2.putText(img,f'Mounting : {conf}%', (x1, y1-10),cv2.FONT_HERSHEY_DUPLEX, 0.6, (255,255,255), 2)
+                
+                if classNames[cls] == "Mounting" and conf >50:
+                    cv2.rectangle(img,(x1,y1),(x2,y2),(0,255,0),2)
+                    count += 1
+                    print(f'{count:2d}',end="\r",flush=True)
+                    standing_time = int(count/12)
+                    cv2.putText(img,f'Standing: {standing_time} s', (x1, y1-10),cv2.FONT_HERSHEY_DUPLEX, 0.6, (255,255,255), 2)
+                    if standing_time == 3 :
+                        print("Alert: Detect")
+                        line.sendimage(img[:,:,::-1],"Estrus Alert")
+                    break
+            else:
+                continue
+            break
+        else:
+            print("Alert: Not-Detect")
+            count = 0
 
-            # FPS calculate
-            end_time = time()
-            fps = round(1/np.round(end_time - start_time, 2),2)
-            cv2.putText(img, f'FPS: {(fps)}', (850,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-
-    img = cv2.resize(img, (960, 540)) # Resize video show  
-    cv2.imshow("Estrus cow detection", img)
-    key = cv2.waitKey(1) # Press Esc button to stop processing
-    if key == 27:
-        break
+         # FPS calculate
+        end_time = time()
+        fps = round(1/np.round(end_time - start_time, 2),2)
+        cv2.putText(img, f'FPS: {(fps)}', (850,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
+        
+        # Image Show
+        img = cv2.resize(img, (960, 540)) # Resize video show  
+        cv2.imshow("Estrus cow detection", img)
+        key = cv2.waitKey(1) # Press Esc button to stop processing
+        if key == 27:
+            break
 
 cap.release()
 cv2.destroyAllWindows()
-
